@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0F172A" />
+  <title>课堂投票站 — Classroom Voting System</title>
+
+  <!-- 字体：Inter（参考图风格），加载失败时回退系统字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       设计语言：SaaS Clean Minimal（参考图风格）
+       - 极浅冷灰背景 + 纯白卡片
+       - 圆角 24/12/8px
+       - 1px 浅灰描边 + 柔和投影
+       - 金 / 银 / 铜三色系用于 TOP3 区分
+       - 字体 Inter，字重 400-800
+       - lucide 风线稿图标（inline SVG）
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* 中性色 */
+      --bg:           #F8FAFC;
+      --card:         #FFFFFF;
+      --text:         #0F172A;
+      --text-2:       #334155;
+      --text-muted:   #64748B;
+      --text-faint:   #94A3B8;
+      --border:       #E2E8F0;
+      --border-soft:  #F1F5F9;
+      --primary:      #0F172A;
+      --primary-soft: #F1F5F9;
+
+      /* 第 1 名 — 金 */
+      --gold-1:       #FEF9C3;
+      --gold-2:       #FEF3C7;
+      --gold-border:  #FDE047;
+      --gold-accent:  #CA8A04;
+      --gold-text:    #713F12;
+
+      /* 第 2 名 — 银 */
+      --silver-1:     #F3F4F6;
+      --silver-2:     #E5E7EB;
+      --silver-border:#D1D5DB;
+      --silver-accent:#6B7280;
+      --silver-text:  #1F2937;
+
+      /* 第 3 名 — 铜 */
+      --bronze-1:     #FFEDD5;
+      --bronze-2:     #FED7AA;
+      --bronze-border:#FDBA74;
+      --bronze-accent:#C2410C;
+      --bronze-text:  #7C2D12;
+
+      /* 圆角 */
+      --r-lg: 24px;
+      --r-md: 12px;
+      --r-sm: 8px;
+      --r-pill: 999px;
+
+      /* 阴影 */
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                   'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      font-weight: 400;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      letter-spacing: -0.005em;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ============================================================
+       顶部 Page Header
+       - 居中标题 + 副标题
+       - 右侧放 4 个 lucide 风设备图标（参考图元素）
+       ============================================================ */
+    .page-header {
+      position: relative;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 48px 24px 32px;
+      text-align: center;
+    }
+    .page-header h1 {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.025em;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-header h1 .trophy {
+      display: inline-flex;
+      width: 36px;
+      height: 36px;
+      align-items: center;
+      justify-content: center;
+    }
+    .page-header .subtitle {
+      margin-top: 10px;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 400;
+    }
+    /* 右上角设备图标组（参考图元素） */
+    .device-icons {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      display: flex;
+      gap: 6px;
+    }
+    .device-icons button,
+    .device-icons a {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      text-decoration: none;
+    }
+    .device-icons button:hover,
+    .device-icons a:hover {
+      background: var(--primary-soft);
+      color: var(--text);
+      border-color: var(--border-soft);
+    }
+    .device-icons svg { width: 16px; height: 16px; }
+
+    /* ============================================================
+       主内容容器
+       ============================================================ */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ============================================================
+       统计胶囊（参考图：5 Candidates / 0 Total Votes）
+       - 居中横排，pill 形状，浅灰背景 + 细描边
+       - 带 lucide 风图标
+       ============================================================ */
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-2);
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-pill svg { width: 16px; height: 16px; color: var(--text-muted); }
+    .stat-pill .stat-value { font-weight: 600; color: var(--text); }
+
+    /* ============================================================
+       通用卡片容器
+       ============================================================ */
+    .section-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-sm);
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .section-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.015em;
+    }
+    .section-header h2 svg { width: 22px; height: 22px; color: var(--text); }
+
+    /* ============================================================
+       TOP3 Leaderboard（三张大卡：金 / 银 / 铜）
+       ============================================================ */
+    .top3-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .top3-grid { grid-template-columns: 1fr; }
+    }
+
+    .top3-card {
+      position: relative;
+      border-radius: var(--r-md);
+      padding: 20px;
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1.5px solid transparent;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .top3-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .top3-card .top3-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .top3-card .rank-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: -0.01em;
+    }
+    .top3-card .medal {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .top3-card .medal svg { width: 28px; height: 28px; }
+    .top3-card .top3-name {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-top: 12px;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    .top3-card .top3-votes {
+      margin-top: 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .top3-card .top3-votes .num {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    .top3-card .top3-votes .unit {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .top3-card .progress-track {
+      margin-top: 16px;
+      height: 4px;
+      border-radius: var(--r-pill);
+      background: rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .top3-card .progress-fill {
+      height: 100%;
+      border-radius: var(--r-pill);
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    .top3-card.empty { opacity: 0.55; }
+
+    /* TOP3 三色：背景渐变 + 描边 + 强调色 */
+    .top3-card.rank-1 {
+      background: linear-gradient(to bottom, var(--gold-1), var(--gold-2));
+      border-color: var(--gold-border);
+    }
+    .top3-card.rank-1 .rank-label { color: var(--gold-text); }
+    .top3-card.rank-1 .medal svg { color: var(--gold-accent); }
+    .top3-card.rank-1 .top3-name { color: var(--gold-text); }
+    .top3-card.rank-1 .top3-votes .num { color: var(--gold-text); }
+    .top3-card.rank-1 .progress-fill { background: var(--gold-border); }
+
+    .top3-card.rank-2 {
+      background: linear-gradient(to bottom, var(--silver-1), var(--silver-2));
+      border-color: var(--silver-border);
+    }
+    .top3-card.rank-2 .rank-label { color: var(--silver-text); }
+    .top3-card.rank-2 .medal svg { color: var(--silver-accent); }
+    .top3-card.rank-2 .top3-name { color: var(--silver-text); }
+    .top3-card.rank-2 .top3-votes .num { color: var(--silver-text); }
+    .top3-card.rank-2 .progress-fill { background: var(--silver-accent); }
+
+    .top3-card.rank-3 {
+      background: linear-gradient(to bottom, var(--bronze-1), var(--bronze-2));
+      border-color: var(--bronze-border);
+    }
+    .top3-card.rank-3 .rank-label { color: var(--bronze-text); }
+    .top3-card.rank-3 .medal svg { color: var(--bronze-accent); }
+    .top3-card.rank-3 .top3-name { color: var(--bronze-text); }
+    .top3-card.rank-3 .top3-votes .num { color: var(--bronze-text); }
+    .top3-card.rank-3 .progress-fill { background: var(--bronze-accent); }
+
+    /* ============================================================
+       All Candidates 网格
+       ============================================================ */
+    .candidates-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) { .candidates-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .candidates-grid { grid-template-columns: 1fr; } }
+
+    .candidate-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 18px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .candidate-card:hover {
+      border-color: var(--border-strong, #CBD5E1);
+      box-shadow: var(--shadow-md);
+    }
+    .candidate-card.voted {
+      border-color: var(--gold-border);
+      background: linear-gradient(to bottom, #FFFEF7, var(--card));
+    }
+    .candidate-info { min-width: 0; flex: 1; }
+    .candidate-info .row-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .candidate-info .rank-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      background: var(--primary-soft);
+      border-radius: var(--r-sm);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+    .candidate-info .name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      word-break: break-word;
+    }
+    .candidate-info .votes {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    .candidate-info .votes strong {
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      margin-right: 3px;
+      letter-spacing: -0.02em;
+    }
+    .candidate-info .work-url {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+      word-break: break-all;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+      width: fit-content;
+      max-width: 100%;
+    }
+    .candidate-info .work-url:hover { color: var(--text); border-bottom-color: var(--text); }
+
+    /* 投票按钮（参考图：白底 + 细描边 + 选票箱图标 + Vote 文字） */
+    .btn-vote {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      min-height: 36px;
+    }
+    .btn-vote:hover {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .btn-vote:hover svg { color: #fff; }
+    .btn-vote svg { width: 14px; height: 14px; color: var(--text-muted); transition: color 0.15s; }
+    .btn-vote.voted {
+      background: var(--gold-border);
+      border-color: var(--gold-border);
+      color: var(--gold-text);
+    }
+    .btn-vote.voted svg { color: var(--gold-text); }
+    .btn-vote.voted:hover {
+      background: #fff;
+      color: var(--gold-text);
+      border-color: var(--gold-border);
+    }
+    .btn-vote.voted:hover svg { color: var(--gold-text); }
+
+    /* ============================================================
+       按钮：次要（Import Candidates 等）
+       ============================================================ */
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+      min-height: 36px;
+    }
+    .btn-secondary:hover {
+      background: var(--primary-soft);
+      border-color: var(--border);
+    }
+    .btn-secondary svg { width: 14px; height: 14px; }
+
+    /* ============================================================
+       视图 A：导入页（独立大页面）
+       ============================================================ */
+    .import-page {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .import-page .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      padding: 6px 10px;
+      border-radius: var(--r-sm);
+      transition: background 0.15s, color 0.15s;
+    }
+    .import-page .back-link:hover { background: var(--primary-soft); color: var(--text); }
+    .import-page .back-link svg { width: 16px; height: 16px; }
+    .import-page h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .import-page .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .import-page .code-hint {
+      background: var(--primary-soft);
+      border-radius: var(--r-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text-2);
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+    .import-page .code-hint code {
+      font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+      background: var(--card);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .import-page textarea {
+      width: 100%;
+      min-height: 280px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--card);
+      font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+      font-size: 13px;
+      color: var(--text);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .import-page textarea:focus {
+      border-color: var(--text-muted);
+      box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
+    }
+    .import-page .parse-meta {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .import-page .parse-meta .count {
+      color: var(--text);
+      font-weight: 700;
+      font-size: 16px;
+      margin: 0 4px;
+    }
+    .import-page .actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .import-page .actions .btn-primary {
+      padding: 11px 22px;
+      background: var(--primary);
+      color: #fff;
+      border: 1px solid var(--primary);
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .import-page .actions .btn-primary:hover { background: #1E293B; }
+    .import-page .actions .btn-primary:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      border-color: var(--border);
+      cursor: not-allowed;
+    }
+    .import-page .actions .btn-primary svg { width: 16px; height: 16px; }
+
+    /* ============================================================
+       视图 C：管理面板
+       ============================================================ */
+    .admin-page {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .admin-page .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      padding: 6px 10px;
+      border-radius: var(--r-sm);
+      transition: background 0.15s, color 0.15s;
+    }
+    .admin-page .back-link:hover { background: var(--primary-soft); color: var(--text); }
+    .admin-page .back-link svg { width: 16px; height: 16px; }
+    .admin-page h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .admin-page .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .admin-actions { display: flex; flex-direction: column; gap: 12px; }
+    .admin-row {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .admin-row .info { min-width: 0; }
+    .admin-row h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .admin-row p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .admin-row .admin-btn {
+      padding: 8px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      font-family: inherit;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .admin-row .admin-btn:hover { background: var(--primary-soft); }
+    .admin-row .admin-btn.danger { color: #DC2626; border-color: #FECACA; }
+    .admin-row .admin-btn.danger:hover { background: #FEF2F2; }
+
+    /* ============================================================
+       Toast 提示
+       ============================================================ */
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+    .toast.success { background: #059669; }
+    .toast.error { background: #DC2626; }
+
+    /* ============================================================
+       空状态
+       ============================================================ */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 8px; opacity: 0.4; }
+  </style>
+</head>
+
+<body>
+  <!-- ============================================================
+       顶部 Page Header
+       ============================================================ -->
+  <header class="page-header">
+    <!-- 右上角设备图标组（参考图元素）+ 管理入口 -->
+    <div class="device-icons">
+      <!-- lucide 风线稿 SVG 图标 -->
+      <!-- 响应式预览图标组（参考图） -->
+      <button title="手机视图" aria-label="手机视图" data-device="phone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+      </button>
+      <button title="平板视图" aria-label="平板视图" data-device="tablet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="20" x="3" y="2" rx="2"/><path d="M12 18h.01"/></svg>
+      </button>
+      <button title="桌面视图" aria-label="桌面视图" data-device="desktop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+      </button>
+      <button title="全屏" aria-label="全屏" data-device="fullscreen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <!-- 管理入口（视觉与设备图标一致，第五个按钮） -->
+      <button title="管理" aria-label="管理" id="btn-admin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+
+    <h1>
+      <span class="trophy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      </span>
+      Classroom Voting System
+    </h1>
+    <p class="subtitle">Vote for your favorite candidates and watch the leaderboard update in real-time</p>
+  </header>
+
+  <main>
+    <!-- ============================================================
+         视图 B：投票页（主页面，对齐参考图）
+         ============================================================ -->
+    <div id="view-vote">
+      <!-- 统计胶囊 -->
+      <div class="stats-row">
+        <div class="stat-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="stat-value" id="stat-candidates">0</span> Candidates
+        </div>
+        <div class="stat-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+          <span class="stat-value" id="stat-total-votes">0</span> Total Votes
+        </div>
+        <div class="stat-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          You've Voted <span class="stat-value" id="stat-mine">0</span>
+        </div>
+      </div>
+
+      <!-- TOP3 Leaderboard -->
+      <section class="section-card">
+        <div class="section-header">
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+            Top 3 Leaderboard
+          </h2>
+        </div>
+        <div class="top3-grid" id="top3-grid">
+          <!-- 3 张大卡由 JS 渲染 -->
+        </div>
+      </section>
+
+      <!-- All Candidates -->
+      <section class="section-card">
+        <div class="section-header">
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            All Candidates
+          </h2>
+          <button class="btn-secondary" id="btn-import">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Import Candidates
+          </button>
+        </div>
+        <div class="candidates-grid" id="candidates-grid">
+          <!-- 候选人卡片由 JS 渲染 -->
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         视图 A：导入页（独立大页面）
+         ============================================================ -->
+    <div id="view-import" class="hidden">
+      <div class="import-page">
+        <a class="back-link" href="#" id="import-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+          Back to Voting
+        </a>
+        <h1>Import Candidates</h1>
+        <p class="subtitle">每行一个候选人，格式 <code style="font-family:inherit;background:var(--primary-soft);padding:1px 6px;border-radius:4px;">name | url</code>，URL 可省略，<code style="font-family:inherit;background:var(--primary-soft);padding:1px 6px;border-radius:4px;">#</code> 开头是注释</p>
+
+        <div class="code-hint">
+          例：<br>
+          <code>Alice Johnson | https://alice.example.com</code><br>
+          <code>Bob Smith</code>
+        </div>
+
+        <textarea
+          id="input-textarea"
+          placeholder="Alice Johnson | https://alice.example.com&#10;Bob Smith | https://bob.example.com&#10;Charlie Brown&#10;# 注释行会被忽略"
+          spellcheck="false"
+        ></textarea>
+
+        <div class="parse-meta">
+          <span>识别到 <span class="count" id="parse-count">0</span> 个候选人</span>
+          <span id="parse-hint"></span>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" id="btn-start" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            Import
+          </button>
+          <button class="btn-secondary" id="btn-sample">填入示例</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         视图 C：管理面板
+         ============================================================ -->
+    <div id="view-admin" class="hidden">
+      <div class="admin-page">
+        <a class="back-link" href="#" id="admin-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+          Back to Voting
+        </a>
+        <h1>Admin Panel</h1>
+        <p class="subtitle">管理候选人名单、投票数据、导出结果</p>
+
+        <div class="admin-actions">
+          <div class="admin-row">
+            <div class="info">
+              <h3>Re-import Candidates</h3>
+              <p>修改候选人名单，不会清空已有票数</p>
+            </div>
+            <button class="admin-btn" id="btn-reimport">Re-import</button>
+          </div>
+          <div class="admin-row">
+            <div class="info">
+              <h3>Export Results</h3>
+              <p>下载 JSON 文件，包含候选人列表、票数、TOP3 汇总</p>
+            </div>
+            <button class="admin-btn" id="btn-export">Export JSON</button>
+          </div>
+          <div class="admin-row">
+            <div class="info">
+              <h3>Clear All Data</h3>
+              <p>清空候选人名单和所有投票，不可撤销</p>
+            </div>
+            <button class="admin-btn danger" id="btn-clear">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast 提示 -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    'use strict';
+
+    /* ============================================================
+       数据层：localStorage 读写
+       - 所有数据用 JSON 序列化存到 localStorage
+       - 键名前缀 vote0610_ 避免和其他项目冲突
+       ============================================================ */
+
+    const KEY_WORKS = 'vote0610_works';     // 候选人列表
+    const KEY_VOTES = 'vote0610_myVotes';   // 当前浏览器已投的票
+
+    function loadWorks() {
+      try {
+        const raw = localStorage.getItem(KEY_WORKS);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveWorks(works) {
+      localStorage.setItem(KEY_WORKS, JSON.stringify(works));
+    }
+
+    function loadMyVotes() {
+      try {
+        const raw = localStorage.getItem(KEY_VOTES);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveMyVotes(myVotes) {
+      localStorage.setItem(KEY_VOTES, JSON.stringify(myVotes));
+    }
+
+
+    /* ============================================================
+       工具函数
+       ============================================================ */
+
+    // 根据名字生成稳定 ID（用简单哈希算法）
+    // 为什么：用户重新导入同名候选人时，ID 不变，已投状态不会丢失
+    function makeId(name) {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = ((hash << 5) - hash) + name.charCodeAt(i);
+        hash |= 0;
+      }
+      return 'w_' + Math.abs(hash).toString(36);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    function escapeAttr(str) { return escapeHtml(str); }
+
+    function showToast(msg, type) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast show' + (type ? ' ' + type : '');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2400);
+    }
+
+
+    /* ============================================================
+       导入解析
+       - 支持「name」或「name | url」两种格式
+       - 自动跳过空行、纯空格、# 注释行
+       - 同名视为同一候选人，自动去重
+       ============================================================ */
+    function parseInput(text) {
+      const lines = text.split('\n');
+      const works = [];
+      const seen  = {};
+      let dupCount = 0;
+
+      for (let raw of lines) {
+        const line = raw.trim();
+        if (!line || line.startsWith('#')) continue;
+
+        const parts = line.split('|').map(s => s.trim());
+        const name = parts[0];
+        const url  = parts.slice(1).join('|').trim();
+
+        if (!name) continue;
+
+        if (seen[name]) { dupCount++; continue; }
+        seen[name] = true;
+
+        works.push({
+          id:    makeId(name),
+          name:  name,
+          url:   url || '',
+          votes: 0
+        });
+      }
+
+      return { works, dupCount };
+    }
+
+
+    /* ============================================================
+       投票核心逻辑
+       - 切换某候选人的投票状态（投 / 取消）
+       - 同步更新全局票数 + 当前浏览器投票记录
+       ============================================================ */
+    function toggleVote(workId) {
+      const works   = loadWorks();
+      const myVotes = loadMyVotes();
+      const work    = works.find(w => w.id === workId);
+      if (!work) return;
+
+      if (myVotes[workId]) {
+        delete myVotes[workId];
+        work.votes = Math.max(0, work.votes - 1);
+      } else {
+        myVotes[workId] = true;
+        work.votes += 1;
+      }
+
+      saveWorks(works);
+      saveMyVotes(myVotes);
+      renderVotePage();
+    }
+
+
+    /* ============================================================
+       SVG 图标（lucide 风线稿）— 内联避免重复定义
+       ============================================================ */
+    const ICONS = {
+      // 皇冠（TOP1）
+      crown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>',
+      // 奖牌（TOP2）
+      medal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></svg>',
+      // 勋章（TOP3）
+      award: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>',
+      // 投票箱（Vote 按钮）
+      vote: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7Z"/><path d="M22 19H2"/></svg>',
+      // 已投票（✓ 圆勾）
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    };
+
+
+    /* ============================================================
+       渲染：投票页（统计 + TOP3 + All Candidates）
+       ============================================================ */
+    function renderVotePage() {
+      const works   = loadWorks();
+      const myVotes = loadMyVotes();
+      const totalVotes = works.reduce((s, w) => s + w.votes, 0);
+
+      // 顶部统计
+      document.getElementById('stat-candidates').textContent = works.length;
+      document.getElementById('stat-total-votes').textContent = totalVotes;
+      document.getElementById('stat-mine').textContent = Object.keys(myVotes).length;
+
+      // 排序：票数倒序，票数相同时按原顺序稳定
+      const sorted = works
+        .map((w, i) => ({ ...w, _idx: i }))
+        .sort((a, b) => b.votes - a.votes || a._idx - b._idx);
+
+      // 1) TOP3 大卡
+      renderTop3(sorted);
+
+      // 2) All Candidates 网格
+      renderCandidates(works, sorted, myVotes);
+    }
+
+
+    /* ============================================================
+       渲染 TOP3 三张大卡片
+       - 票数 > 0 的前 3 名显示具体候选人
+       - 否则显示空状态（0 票、占位）
+       ============================================================ */
+    function renderTop3(sorted) {
+      const grid = document.getElementById('top3-grid');
+      grid.innerHTML = '';
+
+      const icons = [ICONS.crown, ICONS.medal, ICONS.award];
+      const top3 = sorted.filter(w => w.votes > 0).slice(0, 3);
+      // 找到最大票数，用于进度条比例
+      const maxVotes = top3.length > 0 ? top3[0].votes : 1;
+
+      for (let i = 0; i < 3; i++) {
+        const card = document.createElement('div');
+        card.className = 'top3-card rank-' + (i + 1);
+
+        const w = top3[i];
+        if (w) {
+          // 有票的 TOP3
+          const pct = Math.round((w.votes / maxVotes) * 100);
+          card.innerHTML = `
+            <div class="top3-top">
+              <div class="rank-label">#${i + 1}</div>
+              <div class="medal">${icons[i]}</div>
+            </div>
+            <div>
+              <div class="top3-name">${escapeHtml(w.name)}</div>
+              <div class="top3-votes">
+                <span class="num">${w.votes}</span>
+                <span class="unit">votes</span>
+              </div>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: ${pct}%"></div>
+            </div>
+          `;
+        } else {
+          // 空状态
+          card.classList.add('empty');
+          card.innerHTML = `
+            <div class="top3-top">
+              <div class="rank-label">#${i + 1}</div>
+              <div class="medal">${icons[i]}</div>
+            </div>
+            <div>
+              <div class="top3-name">—</div>
+              <div class="top3-votes">
+                <span class="num">0</span>
+                <span class="unit">votes</span>
+              </div>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: 0%"></div>
+            </div>
+          `;
+        }
+        grid.appendChild(card);
+      }
+    }
+
+
+    /* ============================================================
+       渲染 All Candidates 网格
+       - 候选人按原顺序（导入顺序）展示，# 排名 = 票数排名
+       ============================================================ */
+    function renderCandidates(works, sorted, myVotes) {
+      const grid = document.getElementById('candidates-grid');
+      grid.innerHTML = '';
+
+      if (works.length === 0) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="icon">📭</div>还没有候选人，点右上角 Import Candidates 导入</div>';
+        return;
+      }
+
+      // 算出每个人当前的排名（按票数倒序位置 +1）
+      const rankById = {};
+      sorted.forEach((w, i) => { rankById[w.id] = i + 1; });
+
+      works.forEach(work => {
+        const voted = !!myVotes[work.id];
+        const rank = rankById[work.id] || '—';
+        const card = document.createElement('div');
+        card.className = 'candidate-card' + (voted ? ' voted' : '');
+
+        card.innerHTML = `
+          <div class="candidate-info">
+            <div class="row-top">
+              <span class="rank-pill">#${rank}</span>
+              <span class="name">${escapeHtml(work.name)}</span>
+            </div>
+            <div class="votes"><strong>${work.votes}</strong>votes</div>
+            ${work.url ? `<a class="work-url" href="${escapeAttr(work.url)}" target="_blank" rel="noopener">${escapeHtml(work.url)}</a>` : ''}
+          </div>
+          <button class="btn-vote ${voted ? 'voted' : ''}" data-id="${work.id}" title="${voted ? '取消投票' : '投票'}">
+            ${voted ? ICONS.check : ICONS.vote}
+            <span>${voted ? 'Voted' : 'Vote'}</span>
+          </button>
+        `;
+
+        card.querySelector('.btn-vote').onclick = () => toggleVote(work.id);
+        grid.appendChild(card);
+      });
+    }
+
+
+    /* ============================================================
+       导入页：实时解析 textarea
+       ============================================================ */
+    function bindImportEvents() {
+      const textarea = document.getElementById('input-textarea');
+      const update = () => {
+        const { works, dupCount } = parseInput(textarea.value);
+        document.getElementById('parse-count').textContent = works.length;
+        document.getElementById('parse-hint').textContent =
+          dupCount > 0 ? `已忽略 ${dupCount} 个重名` : '';
+        document.getElementById('btn-start').disabled = works.length === 0;
+      };
+      textarea.oninput = update;
+      update();
+    }
+
+
+    /* ============================================================
+       导出：投票结果 → JSON 文件下载
+       ============================================================ */
+    function exportResult() {
+      const works = loadWorks();
+      const sorted = [...works].sort((a, b) => b.votes - a.votes);
+      const result = {
+        exportedAt: new Date().toISOString(),
+        totalCandidates: works.length,
+        totalVotes: works.reduce((sum, w) => sum + w.votes, 0),
+        top3: sorted.slice(0, 3).map(w => ({ name: w.name, votes: w.votes, url: w.url })),
+        allCandidates: sorted.map(w => ({ name: w.name, votes: w.votes, url: w.url }))
+      };
+      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `voting-result_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('已导出投票结果', 'success');
+    }
+
+
+    /* ============================================================
+       视图切换
+       ============================================================ */
+    function showView(name) {
+      document.getElementById('view-vote').classList.toggle('hidden', name !== 'vote');
+      document.getElementById('view-import').classList.toggle('hidden', name !== 'import');
+      document.getElementById('view-admin').classList.toggle('hidden', name !== 'admin');
+    }
+
+
+    /* ============================================================
+       主流程：路由 + 初始化
+       ============================================================ */
+    function route() {
+      const hash = location.hash;
+      const works = loadWorks();
+
+      if (hash === '#admin') {
+        showView('admin');
+        return;
+      }
+      if (hash === '#import') {
+        showView('import');
+        bindImportEvents();
+        return;
+      }
+
+      // 默认：投票页
+      showView('vote');
+      if (works.length === 0) {
+        // 没数据 → 提示去导入
+        renderVotePage();  // 仍然渲染（会显示空状态）
+      } else {
+        renderVotePage();
+      }
+    }
+
+    window.addEventListener('hashchange', route);
+
+
+    /* ============================================================
+       事件绑定
+       ============================================================ */
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // 设备图标（手机/平板/桌面/全屏）— 仅作装饰，点击无功能
+      document.querySelectorAll('.device-icons button[data-device]').forEach(btn => {
+        btn.onclick = () => {
+          const device = btn.dataset.device;
+          const messages = {
+            phone: '手机视图：单列布局，方便投票人扫码投票',
+            tablet: '平板视图：2 列布局',
+            desktop: '桌面视图：3-4 列布局（大屏投票推荐）',
+            fullscreen: '全屏展示：适合讲台大屏'
+          };
+          showToast(messages[device] || '视图预览');
+        };
+      });
+
+      // 管理入口
+      document.getElementById('btn-admin').onclick = () => {
+        location.hash = '#admin';
+        route();
+      };
+
+      // 导入页：返回
+      document.getElementById('import-back').onclick = (e) => {
+        e.preventDefault();
+        location.hash = '';
+        route();
+      };
+
+      // 导入页：开始导入
+      document.getElementById('btn-start').onclick = () => {
+        const textarea = document.getElementById('input-textarea');
+        const { works: parsed, dupCount } = parseInput(textarea.value);
+        if (parsed.length === 0) {
+          showToast('请至少添加一个候选人', 'error');
+          return;
+        }
+        // 合并旧数据：保留旧票数
+        const oldWorks = loadWorks();
+        const oldById  = {};
+        oldWorks.forEach(w => { oldById[w.id] = w; });
+        parsed.forEach(w => {
+          if (oldById[w.id]) w.votes = oldById[w.id].votes;
+        });
+
+        // 清理 myVotes 里指向不存在候选人的孤儿键
+        const oldMyVotes = loadMyVotes();
+        const validIds = {};
+        parsed.forEach(w => { validIds[w.id] = true; });
+        const newMyVotes = {};
+        Object.keys(oldMyVotes).forEach(id => {
+          if (validIds[id]) newMyVotes[id] = true;
+        });
+
+        saveWorks(parsed);
+        saveMyVotes(newMyVotes);
+        showToast(`已导入 ${parsed.length} 个候选人` + (dupCount ? `，忽略 ${dupCount} 个重名` : ''), 'success');
+        location.hash = '';
+        route();
+      };
+
+      // 导入页：填入示例
+      document.getElementById('btn-sample').onclick = () => {
+        document.getElementById('input-textarea').value =
+          `Alice Johnson | https://alice.example.com
+Bob Smith | https://bob.example.com
+Charlie Brown
+Diana Prince | https://diana.example.com
+Ethan Hunt
+# 这是注释行，会被忽略`;
+        bindImportEvents();
+      };
+
+      // All Candidates 卡片标题的导入按钮
+      document.getElementById('btn-import').onclick = () => {
+        location.hash = '#import';
+        route();
+      };
+
+      // 管理页：返回
+      document.getElementById('admin-back').onclick = (e) => {
+        e.preventDefault();
+        location.hash = '';
+        route();
+      };
+
+      // 管理：重新导入
+      document.getElementById('btn-reimport').onclick = () => {
+        location.hash = '#import';
+        route();
+      };
+
+      // 管理：导出
+      document.getElementById('btn-export').onclick = exportResult;
+
+      // 管理：清空
+      document.getElementById('btn-clear').onclick = () => {
+        if (!confirm('确定要清空所有候选人和投票记录吗？此操作不可撤销。')) return;
+        localStorage.removeItem(KEY_WORKS);
+        localStorage.removeItem(KEY_VOTES);
+        showToast('已清空所有数据', 'success');
+        location.hash = '';
+        route();
+      };
+
+      // 首次进入
+      route();
+    });
+  </script>
+</body>
+</html>
